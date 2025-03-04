@@ -1,17 +1,31 @@
 "use client";
 
-import React, { useState, useRef, Suspense } from "react";
+import React, { useState, useRef, Suspense, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Points, PointMaterial, Preload } from "@react-three/drei";
 import * as THREE from "three";
-// @ts-expect-error
+// @ts-expect-error: maath/random has no TypeScript support yet
 import * as random from "maath/random/dist/maath-random.esm";
 
-const StarBackground = (props: any) => {
-  const ref = useRef<THREE.Group>(null);
+interface StarBackgroundProps {
+  [key: string]: unknown;
+}
+
+const StarBackground = (props: StarBackgroundProps) => {
+  const ref = useRef<THREE.Points>(null);
   const [sphere] = useState(() =>
     random.inSphere(new Float32Array(5000), { radius: 1.2 })
   );
+
+  // ✅ Use useMemo to create geometry properly
+  const pointsGeometry = useMemo(() => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(sphere, 3)
+    );
+    return geometry;
+  }, [sphere]);
 
   useFrame((state, delta) => {
     if (ref.current) {
@@ -21,24 +35,18 @@ const StarBackground = (props: any) => {
   });
 
   return (
-    <group rotation={[0,0, Math.PI / 4]}>
-    <Points
-    ref={ref}
-    positions={sphere}
-    stride={3}
-    frustumCulled
-    {...props}
-    >
+    <group rotation={[0, 0, Math.PI / 4]}>
+      <Points ref={ref} geometry={pointsGeometry} frustumCulled {...props}>
         <PointMaterial
-            transparent
-            color="$fff"
-            size={0.002}
-            sizeAttenuation={true}
-            depthWrite={false}
+          transparent
+          color="#fff"
+          size={0.002}
+          sizeAttenuation={true}
+          depthWrite={false}
         />
-    </Points>
-</group>
-)
+      </Points>
+    </group>
+  );
 };
 
 const StarsCanvas = () => (
